@@ -500,7 +500,7 @@ UPDATE pedidos SET subtotal = 85.00, valor_total = 85.00 WHERE id_pedido = 70;
 UPDATE pedidos SET subtotal = 25.20, valor_total = 25.20 WHERE id_pedido = 75;
 -- pedido 80 já foi atualizado para 18.00
 
- -- pedidos com status 'enviado', 'entregue' ou 'devolvido' recebem uma entrada na tabela de entrega_expedicao
+ -- Pedidos com status 'enviado', 'entregue' ou 'devolvido' recebem uma entrada na tabela de entrega_expedicao
 INSERT INTO entrega_expedicao (id_entrega, id_pedido, status_entrega, transportadora, codigo_rastreamento)
 SELECT
     ROW_NUMBER() OVER (ORDER BY id_pedido),
@@ -518,3 +518,9 @@ SELECT
     'BR' || LPAD(id_pedido::TEXT, 8, '0') || 'BR'
 FROM pedidos
 WHERE status IN ('enviado', 'entregue', 'devolvido');
+
+-- Contagens de uso de cupons
+UPDATE cupons SET contagem_usos = 7 WHERE id_cupom = 'CUP1';
+UPDATE cupons SET contagem_usos = 3 WHERE id_cupom = 'CUP4';
+UPDATE cupons SET contagem_usos = 13 WHERE id_cupom = 'CUP7';
+UPDATE cupons SET contagem_usos = 9
