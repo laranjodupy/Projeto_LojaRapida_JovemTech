@@ -105,3 +105,22 @@ CREATE TABLE itens_pedido (
     FOREIGN KEY (pedido_id) REFERENCES pedidos(id_pedido),
     FOREIGN KEY (produto_id) REFERENCES produtos(id_produto)
 );
+
+CREATE TABLE pagamentos (
+    id_pagamento INT PRIMARY KEY AUTO_INCREMENT,
+    pedido_id INT,
+    metodo ENUM('cartao', 'pix', 'boleto'),
+    valor DECIMAL(10,2),
+    data_pagamento DATETIME DEFAULT CURRENT_TIMESTAMP,
+    status ENUM('aprovado', 'recusado', 'estornado'),
+
+    FOREIGN KEY (pedido_id) REFERENCES pedidos(id_pedido)
+);
+
+CREATE TABLE status_pedido (
+    id_status_pedido INT PRIMARY KEY AUTO_INCREMENT,
+    nome VARCHAR(50) NOT NULL,
+    descricao VARCHAR(255),
+    ordem_fluxo INT NOT NULL,
+    ativo BOOLEAN DEFAULT TRUE
+);
