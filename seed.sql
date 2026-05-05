@@ -494,3 +494,8 @@ INSERT INTO itens_pedido (id_item, pedido_id, produto_id, quantidade, preco_unit
 (94, 79, 19, 1, 30.00),
 (95, 80, 10, 1, 18.00);
 
+-- Correções de subtotal/valor_total em pedidos que divergem
+UPDATE pedidos SET subtotal = 28.20, valor_total = 28.20 WHERE id_pedido = 65;
+UPDATE pedidos SET subtotal = 85.00, valor_total = 85.00 WHERE id_pedido = 70;
+UPDATE pedidos SET subtotal = 25.20, valor_total = 25.20 WHERE id_pedido = 75;
+-- pedido 80 já foi atualizado para 18.00
