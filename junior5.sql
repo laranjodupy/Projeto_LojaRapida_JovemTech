@@ -1,3 +1,38 @@
+CREATE TABLE cliente (
+    id_cliente INT PRIMARY KEY AUTO_INCREMENT,
+    nome VARCHAR(50),
+    razao_social VARCHAR(100),
+    cpf VARCHAR(11) UNIQUE,
+    cnpj VARCHAR(14) UNIQUE,
+    email VARCHAR(100) UNIQUE,
+    tipo ENUM ('PF', 'PJ') NOT NULL
+);
+
+CREATE TABLE endereco (
+    id_endereco INT PRIMARY KEY AUTO_INCREMENT,
+    id_cliente INT,
+    cep VARCHAR(10),
+    logradouro VARCHAR(150),
+    numero VARCHAR(10),
+    complemento VARCHAR(100),
+    bairro VARCHAR(100),
+    cidade VARCHAR(100),
+    estado VARCHAR(50),
+    pais VARCHAR(50),
+    tipo_endereco ENUM('residencial', 'comercial', 'entrega'),
+    principal BOOLEAN DEFAULT FALSE,
+    status BOOLEAN DEFAULT TRUE,
+
+    FOREIGN KEY (id_cliente) REFERENCES cliente(id_cliente)
+);
+
+CREATE TABLE forma_pagamento (
+    id_forma_pagamento INT PRIMARY KEY AUTO_INCREMENT,
+    nome VARCHAR(50) NOT NULL,
+    descricao VARCHAR(255),
+    ativo BOOLEAN DEFAULT TRUE
+);
+
 CREATE TABLE IF NOT EXISTS estoque (
     id_estoque INT PRIMARY KEY AUTO_INCREMENT,
     id_produto INT NOT NULL,
