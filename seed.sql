@@ -347,8 +347,132 @@ SELECT
 FROM pedidos
 WHERE status IN ('enviado', 'entregue', 'devolvido');
 
--- Contagens de uso de cupons
-UPDATE cupons SET contagem_usos = 7 WHERE id_cupom = 'CUP1';
-UPDATE cupons SET contagem_usos = 3 WHERE id_cupom = 'CUP4';
-UPDATE cupons SET contagem_usos = 13 WHERE id_cupom = 'CUP7';
-UPDATE cupons SET contagem_usos = 9
+-- Contagens de uso de cupons (corrigindo truncamento + completando)
+UPDATE cupons SET contagem_usos = 5  WHERE id_cupom = 'CUP1';  -- pedidos 8, 23, 48, 58, 73
+UPDATE cupons SET contagem_usos = 1  WHERE id_cupom = 'CUP3';  -- pedido 43 (cupom expirado, ainda assim foi usado uma vez)
+UPDATE cupons SET contagem_usos = 3  WHERE id_cupom = 'CUP4';  -- pedidos 13, 33, 63
+UPDATE cupons SET contagem_usos = 2  WHERE id_cupom = 'CUP6';  -- pedidos 18, 53
+UPDATE cupons SET contagem_usos = 4  WHERE id_cupom = 'CUP7';  -- pedidos 3, 28, 38, 68
+
+-- ============================================================
+-- VARIAÇÃO DE ESTOQUE (PDF: "estoques variados, pelo menos 5 com pouco/sem estoque")
+-- ------------------------------------------------------------
+-- O catálogo veio todo com estoque = 10 nos produtos ativos. Pra Q1
+-- (estoque < 10) ter resultado, distribuímos os estoques de forma realista.
+-- ============================================================
+UPDATE produtos SET quantidade_estoque = 1   WHERE id_produto = 18;  -- Organizador de Mesa
+UPDATE produtos SET quantidade_estoque = 2   WHERE id_produto = 28;  -- Webcam
+UPDATE produtos SET quantidade_estoque = 3   WHERE id_produto = 7;   -- Lapiseira
+UPDATE produtos SET quantidade_estoque = 4   WHERE id_produto = 33;  -- Suporte Monitor
+UPDATE produtos SET quantidade_estoque = 5   WHERE id_produto = 4;   -- Marca-texto
+UPDATE produtos SET quantidade_estoque = 6   WHERE id_produto = 26;  -- Adaptador USB-C
+UPDATE produtos SET quantidade_estoque = 7   WHERE id_produto = 13;  -- Papel Cartão
+UPDATE produtos SET quantidade_estoque = 8   WHERE id_produto = 22;  -- Grampeador
+UPDATE produtos SET quantidade_estoque = 9   WHERE id_produto = 35;  -- Apoio Pés
+UPDATE produtos SET quantidade_estoque = 25  WHERE id_produto = 1;
+UPDATE produtos SET quantidade_estoque = 30  WHERE id_produto = 2;
+UPDATE produtos SET quantidade_estoque = 50  WHERE id_produto = 3;
+UPDATE produtos SET quantidade_estoque = 45  WHERE id_produto = 5;
+UPDATE produtos SET quantidade_estoque = 60  WHERE id_produto = 6;
+UPDATE produtos SET quantidade_estoque = 80  WHERE id_produto = 8;
+UPDATE produtos SET quantidade_estoque = 100 WHERE id_produto = 9;
+UPDATE produtos SET quantidade_estoque = 40  WHERE id_produto = 10;
+UPDATE produtos SET quantidade_estoque = 70  WHERE id_produto = 11;
+UPDATE produtos SET quantidade_estoque = 25  WHERE id_produto = 12;
+UPDATE produtos SET quantidade_estoque = 35  WHERE id_produto = 14;
+UPDATE produtos SET quantidade_estoque = 55  WHERE id_produto = 15;
+UPDATE produtos SET quantidade_estoque = 22  WHERE id_produto = 16;
+UPDATE produtos SET quantidade_estoque = 18  WHERE id_produto = 17;
+UPDATE produtos SET quantidade_estoque = 28  WHERE id_produto = 19;
+UPDATE produtos SET quantidade_estoque = 33  WHERE id_produto = 20;
+UPDATE produtos SET quantidade_estoque = 15  WHERE id_produto = 21;
+UPDATE produtos SET quantidade_estoque = 20  WHERE id_produto = 23;
+UPDATE produtos SET quantidade_estoque = 24  WHERE id_produto = 24;
+UPDATE produtos SET quantidade_estoque = 50  WHERE id_produto = 25;
+UPDATE produtos SET quantidade_estoque = 12  WHERE id_produto = 27;
+UPDATE produtos SET quantidade_estoque = 40  WHERE id_produto = 29;
+UPDATE produtos SET quantidade_estoque = 14  WHERE id_produto = 30;
+UPDATE produtos SET quantidade_estoque = 16  WHERE id_produto = 31;
+UPDATE produtos SET quantidade_estoque = 11  WHERE id_produto = 32;
+UPDATE produtos SET quantidade_estoque = 26  WHERE id_produto = 34;
+-- produtos 36-40 mantêm estoque 0 (inativos/sem estoque)
+
+-- ============================================================
+-- POPULA TABELA pagamentos (PDF: "Todo pedido pago tem pagamento aprovado")
+-- ------------------------------------------------------------
+-- Faltava no seed. Cada pedido em status >= pago recebe 1 pagamento aprovado.
+-- Pedidos devolvidos recebem ainda 1 pagamento estornado.
+-- Método sorteado por id_pedido (não importa o critério, só pra variar).
+-- ============================================================
+INSERT INTO pagamentos (id_pagamento, pedido_id, descricao, metodo, valor, data_pagamento, status)
+SELECT
+    ROW_NUMBER() OVER (ORDER BY p.id_pedido)                              AS id_pagamento,
+    p.id_pedido                                                           AS pedido_id,
+    'Pagamento aprovado do pedido #' || p.id_pedido                       AS descricao,
+    (ARRAY['cartao','pix','boleto'])[((p.id_pedido - 1) % 3) + 1]         AS metodo,
+    p.valor_total                                                         AS valor,
+    p.data_criacao + INTERVAL '4 hours'                                   AS data_pagamento,
+    'aprovado'                                                            AS status
+FROM pedidos p
+WHERE p.status IN ('pago','em separacao','enviado','entregue','devolvido');
+
+-- Estornos pros devolvidos (pagamento aprovado + estorno depois)
+INSERT INTO pagamentos (id_pagamento, pedido_id, descricao, metodo, valor, data_pagamento, status)
+SELECT
+    100 + ROW_NUMBER() OVER (ORDER BY p.id_pedido)                        AS id_pagamento,
+    p.id_pedido                                                           AS pedido_id,
+    'Estorno do pedido #' || p.id_pedido                                  AS descricao,
+    (ARRAY['cartao','pix','boleto'])[((p.id_pedido - 1) % 3) + 1]         AS metodo,
+    p.valor_total                                                         AS valor,
+    p.data_criacao + INTERVAL '7 days'                                    AS data_pagamento,
+    'estornado'                                                           AS status
+FROM pedidos p
+WHERE p.status = 'devolvido';
+
+-- ============================================================
+-- POPULA historico_status (PDF: "histórico deve refletir a progressão real")
+-- ------------------------------------------------------------
+-- Pra cada pedido, gera as transições de status que ele sofreu até chegar
+-- no status atual. Append-only e cronológico.
+-- ============================================================
+
+-- 1) Toda criação de pedido entra como 'aguardando pagamento'
+INSERT INTO historico_status (pedido_id, status_anterior, status_novo, alterado_em, usuario_responsavel)
+SELECT id_pedido, NULL, 'aguardando pagamento', data_criacao, 'sistema'
+FROM pedidos;
+
+-- 2) Pedidos cancelados: aguardando -> cancelado (em até 2 dias após criação)
+INSERT INTO historico_status (pedido_id, status_anterior, status_novo, alterado_em, usuario_responsavel)
+SELECT id_pedido, 'aguardando pagamento', 'cancelado',
+       data_criacao + INTERVAL '1 day' + (id_pedido % 24) * INTERVAL '1 hour', 'sistema'
+FROM pedidos WHERE status = 'cancelado';
+
+-- 3) Pedidos a partir de 'pago' passaram por aguardando -> pago (em até 4h)
+INSERT INTO historico_status (pedido_id, status_anterior, status_novo, alterado_em, usuario_responsavel)
+SELECT id_pedido, 'aguardando pagamento', 'pago',
+       data_criacao + INTERVAL '4 hours', 'sistema'
+FROM pedidos WHERE status IN ('pago','em separacao','enviado','entregue','devolvido');
+
+-- 4) Pedidos a partir de 'em separacao': pago -> em separacao (no dia seguinte)
+INSERT INTO historico_status (pedido_id, status_anterior, status_novo, alterado_em, usuario_responsavel)
+SELECT id_pedido, 'pago', 'em separacao',
+       data_criacao + INTERVAL '1 day', 'sistema'
+FROM pedidos WHERE status IN ('em separacao','enviado','entregue','devolvido');
+
+-- 5) Pedidos a partir de 'enviado': em separacao -> enviado (1.5 dia depois)
+INSERT INTO historico_status (pedido_id, status_anterior, status_novo, alterado_em, usuario_responsavel)
+SELECT id_pedido, 'em separacao', 'enviado',
+       data_criacao + INTERVAL '36 hours', 'sistema'
+FROM pedidos WHERE status IN ('enviado','entregue','devolvido');
+
+-- 6) Pedidos 'entregue' ou 'devolvido': enviado -> entregue (3 dias após criação)
+INSERT INTO historico_status (pedido_id, status_anterior, status_novo, alterado_em, usuario_responsavel)
+SELECT id_pedido, 'enviado', 'entregue',
+       data_criacao + INTERVAL '3 days', 'sistema'
+FROM pedidos WHERE status IN ('entregue','devolvido');
+
+-- 7) Pedidos 'devolvido': entregue -> devolvido (7 dias após criação)
+INSERT INTO historico_status (pedido_id, status_anterior, status_novo, alterado_em, usuario_responsavel)
+SELECT id_pedido, 'entregue', 'devolvido',
+       data_criacao + INTERVAL '7 days', 'sistema'
+FROM pedidos WHERE status = 'devolvido';
