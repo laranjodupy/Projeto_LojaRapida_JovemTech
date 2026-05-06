@@ -141,12 +141,6 @@ INSERT INTO cupons (id_cupom, tipo_desconto, valor_desconto, data_validade, uso_
 ('CUP7', 'percentual', 5.00, '2026-12-31', 100, 10, TRUE, '2026-04-10 16:00:00'),
 ('CUP8', 'valor_fixo', 30.00, '2026-06-15', 3, 3, TRUE, '2026-04-15 08:00:00');
 
--- Forma de pagamento (apoio)
-INSERT INTO forma_pagamento (id_forma_pagamento, nome, descricao, ativo) VALUES
-(1, 'Cartão de Crédito', 'Pagamento com cartão de crédito', TRUE),
-(2, 'PIX', 'Transferência instantânea', TRUE),
-(3, 'Boleto Bancário', 'Boleto com vencimento', TRUE);
-
 -- Pedidos (80) com status variados, datas no último mês
 INSERT INTO pedidos (id_pedido, id_cliente, id_endereco, data_criacao, subtotal, desconto_aplicado, valor_total, status, codigo_cupom) VALUES
 (1, 1, 1, '2026-04-01 10:15:00', 2.50, 0.00, 2.50, 'entregue', NULL),
