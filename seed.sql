@@ -1,17 +1,6 @@
 -- ============================================================
 -- INSERTS PARA O BANCO DE DADOS DA LOJARÁPIDA
 -- ============================================================
-
--- Status do pedido (catálogo)
-INSERT INTO status_pedido (id_status_pedido, nome, descricao, ordem_fluxo, ativo) VALUES
-(1, 'aguardando pagamento', 'Pedido aguardando confirmação de pagamento', 1, TRUE),
-(2, 'pago', 'Pagamento confirmado', 2, TRUE),
-(3, 'em separacao', 'Pedido em separação no estoque', 3, TRUE),
-(4, 'enviado', 'Pedido enviado ao cliente', 4, TRUE),
-(5, 'entregue', 'Pedido entregue ao destinatário', 5, TRUE),
-(6, 'cancelado', 'Pedido cancelado', 6, TRUE),
-(7, 'devolvido', 'Pedido devolvido pelo cliente', 7, TRUE);
-
 -- Categorias (6)
 INSERT INTO categorias (id_categoria, nome, descricao, status) VALUES
 (1, 'Escrita', 'Canetas, lápis, marcadores', 'Disponível'),
