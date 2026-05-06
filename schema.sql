@@ -115,7 +115,7 @@ CREATE TABLE IF NOT EXISTS itens_pedido (
 CREATE TABLE IF NOT EXISTS movimento_estoque (
     id_movimento INT PRIMARY KEY,
     id_estoque INT NOT NULL,
-    id_item_pedido INT NOT NULL,
+    id_item_pedido INT,
     tipo_movimento VARCHAR(10) NOT NULL CHECK (tipo_movimento IN ('entrada', 'saida')),
     quantidade INT NOT NULL,
     data_movimento TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
