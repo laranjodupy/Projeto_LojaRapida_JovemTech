@@ -40,8 +40,8 @@ CREATE TABLE IF NOT EXISTS produtos (
     id_produto INT PRIMARY KEY,
     nome VARCHAR(150) NOT NULL,
     descricao TEXT,
-    preco DECIMAL(10,2) NOT NULL,
-    quantidade_estoque INT NOT NULL DEFAULT 0,
+    preco DECIMAL(10,2) NOT NULL CHECK (preco >= 0),
+    quantidade_estoque INT NOT NULL DEFAULT 0 CHECK (quantidade_estoque >= 0),
     status VARCHAR(20) NOT NULL DEFAULT 'ativo' CHECK (status IN ('ativo', 'inativo', 'sem estoque')),
     id_categoria INT NOT NULL,
     data_cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -63,13 +63,15 @@ CREATE TABLE IF NOT EXISTS estoque (
 CREATE TABLE IF NOT EXISTS cupons (
     id_cupom VARCHAR(50) PRIMARY KEY,
     tipo_desconto VARCHAR(20) NOT NULL CHECK (tipo_desconto IN ('percentual', 'valor_fixo')),
-    valor_desconto DECIMAL(10,2) NOT NULL,
+    valor_desconto DECIMAL(10,2) NOT NULL CHECK (valor_desconto > 0),
     data_validade DATE NOT NULL,
-    uso_maximo INT NOT NULL DEFAULT 1,
-    contagem_usos INT NOT NULL DEFAULT 0,
+    uso_maximo INT NOT NULL DEFAULT 1 CHECK (uso_maximo > 0),
+    contagem_usos INT NOT NULL DEFAULT 0 CHECK (contagem_usos >= 0),
     ativo BOOLEAN NOT NULL DEFAULT TRUE,
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    -- Garante que não usem o cupom além do limite
+    CONSTRAINT chk_usos_dentro_limite CHECK (contagem_usos <= uso_maximo)
 );
 
 -- Tabela pedidos
@@ -95,7 +97,12 @@ CREATE TABLE IF NOT EXISTS pedidos (
     atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (codigo_cupom) REFERENCES cupons(id_cupom),
     FOREIGN KEY (id_cliente) REFERENCES cliente(id_cliente),
-    FOREIGN KEY (id_endereco) REFERENCES endereco(id_endereco)
+    FOREIGN KEY (id_endereco) REFERENCES endereco(id_endereco),
+    -- Garante que valor_total bate com subtotal - desconto (consistência financeira)
+    CONSTRAINT chk_total_consistente CHECK (valor_total = subtotal - desconto_aplicado),
+    CONSTRAINT chk_subtotal_positivo CHECK (subtotal >= 0),
+    CONSTRAINT chk_desconto_positivo CHECK (desconto_aplicado >= 0),
+    CONSTRAINT chk_total_positivo CHECK (valor_total >= 0)
 );
 
 -- Tabela itens_pedido
@@ -161,3 +168,28 @@ CREATE TABLE IF NOT EXISTS status_pedido (
     FOREIGN KEY (id_expedicao) REFERENCES entrega_expedicao(id_entrega),
     FOREIGN KEY (id_pedido) REFERENCES pedidos(id_pedido)
 );
+
+-- ============================================================
+-- Tabela historico_status (entidade obrigatória pelo PDF)
+-- ============================================================
+-- Append-only: cada mudança de status do pedido gera uma linha aqui.
+-- É a fonte da verdade pra rastreabilidade — quando foi pago? quando foi
+-- enviado? quanto tempo levou? O pedidos.status mostra só o estado atual,
+-- mas perde a história. Essa tabela preserva todas as transições.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS historico_status (
+    id_historico SERIAL PRIMARY KEY,
+    pedido_id INT NOT NULL,
+    status_anterior VARCHAR(30),
+    status_novo VARCHAR(30) NOT NULL CHECK (status_novo IN (
+        'aguardando pagamento','pago','em separacao','enviado',
+        'entregue','cancelado','devolvido'
+    )),
+    alterado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    usuario_responsavel VARCHAR(100) NOT NULL DEFAULT 'sistema',
+    FOREIGN KEY (pedido_id) REFERENCES pedidos(id_pedido) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_historico_pedido ON historico_status(pedido_id);
+CREATE INDEX IF NOT EXISTS idx_historico_status ON historico_status(status_novo);
+CREATE INDEX IF NOT EXISTS idx_historico_alterado ON historico_status(alterado_em);
