@@ -1,4 +1,3 @@
-
 select
     p.codigo AS codigo_produto,
     p.nome AS produto,
@@ -21,11 +20,3 @@ FROM pagamento pg
 WHERE pg.status_pagamento = 'aprovado' AND pg.data_pagamento >= CURRENT_DATE - INTERVAL '30 days'
 GROUP BY data
 ORDER BY DATE(pg.data_pagamento) DESC;
----------------------------------------------------------
-3. Quais são os 10 produtos mais vendidos em quantidade de unidades no último mês?
-
-
-
-
-3. Quais são os 10 produtos mais vendidos em quantidade de unidades no último mês?
-Mostre o nome do produto, a categoria e o total vendido.
