@@ -1,0 +1,132 @@
+# Modelo de tabelas – Sistema de Vendas
+
+## 1. cliente
+
+* id_cliente (PK)
+* nome
+* razao_social
+* cpf
+* cnpj
+* email
+* tipo
+
+## 2. endereco
+
+* id_endereco (PK)
+* id_cliente (FK)
+* cep
+* logradouro
+* numero
+* complemento
+* bairro
+* cidade
+* estado
+* pais
+* tipo_endereco
+* principal
+* status
+
+## 3. forma_pagamento
+
+* id_forma_pagamento (PK)
+* nome
+* descricao
+* ativo
+
+## 4. categorias
+
+* id_categoria (PK)
+* nome
+* descricao
+* status
+
+## 5. produtos
+
+* id_produto (PK)
+* nome
+* descricao
+* preco
+* quantidade_estoque
+* status
+* id_categoria (FK)
+* data_cadastro
+
+## 6. estoque
+
+* id_estoque (PK)
+* id_produto (FK)
+* quantidade_disponivel
+* quantidade_reservada
+* quantidade_minima
+* atualizado_em
+
+## 7. cupons
+
+* id_cupom (PK)
+* tipo_desconto
+* valor_desconto
+* data_validade
+* uso_maximo
+* contagem_usos
+* ativo
+* criado_em
+* atualizado_em
+
+## 8. pedidos
+
+* id_pedido (PK)
+* id_cliente (FK)
+* id_endereco (FK)
+* data_criacao
+* subtotal
+* desconto_aplicado
+* valor_total
+* status
+* codigo_cupom (FK)
+* atualizado_em
+
+## 9. itens_pedido
+
+* id_item (PK)
+* pedido_id (FK)
+* produto_id (FK)
+* quantidade
+* preco_unitario
+* subtotal
+* criado_em
+
+## 10. movimento_estoque
+
+* id_movimento (PK)
+* id_estoque (FK)
+* id_item_pedido (FK)
+* tipo_movimento
+* quantidade
+* data_movimento
+* observacao
+* origem_movimento
+
+## 11. entrega_expedicao
+
+* id_entrega (PK)
+* id_pedido (FK)
+* status_entrega
+* transportadora
+* codigo_rastreamento
+
+## 12. pagamentos
+
+* id_pagamento (PK)
+* pedido_id (FK)
+* metodo
+* valor
+* data_pagamento
+* status
+
+## 13. status_pedido
+
+* id_status_pedido (PK)
+* nome
+* descricao
+* ordem_fluxo
+* ativo
