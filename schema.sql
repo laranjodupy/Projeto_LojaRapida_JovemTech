@@ -27,14 +27,6 @@ CREATE TABLE IF NOT EXISTS endereco (
     FOREIGN KEY (id_cliente) REFERENCES cliente(id_cliente)
 );
 
--- Tabela forma_pagamento
-CREATE TABLE IF NOT EXISTS forma_pagamento (
-    id_forma_pagamento INT PRIMARY KEY,
-    nome VARCHAR(50) NOT NULL,
-    descricao VARCHAR(255),
-    ativo BOOLEAN DEFAULT TRUE
-);
-
 -- Tabela categorias
 CREATE TABLE IF NOT EXISTS categorias (
     id_categoria INT PRIMARY KEY,
@@ -147,18 +139,25 @@ CREATE TABLE IF NOT EXISTS entrega_expedicao (
 CREATE TABLE IF NOT EXISTS pagamentos (
     id_pagamento INT PRIMARY KEY,
     pedido_id INT,
+    descricao VARCHAR(255),
     metodo VARCHAR(10) CHECK (metodo IN ('cartao', 'pix', 'boleto')),
     valor DECIMAL(10,2),
     data_pagamento TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     status VARCHAR(20) CHECK (status IN ('aprovado', 'recusado', 'estornado')),
+
     FOREIGN KEY (pedido_id) REFERENCES pedidos(id_pedido)
 );
 
 -- Tabela status_pedido
 CREATE TABLE IF NOT EXISTS status_pedido (
     id_status_pedido INT PRIMARY KEY,
-    nome VARCHAR(50) NOT NULL,
+    id_expedicao INT,
+    id_pedido INT NOT NULL,
+    situacao VARCHAR(50) NOT NULL,
     descricao VARCHAR(255),
     ordem_fluxo INT NOT NULL,
-    ativo BOOLEAN DEFAULT TRUE
+    ativo BOOLEAN DEFAULT TRUE,
+
+    FOREIGN KEY (id_expedicao) REFERENCES entrega_expedicao(id_entrega),
+    FOREIGN KEY (id_pedido) REFERENCES pedidos(id_pedido)
 );
