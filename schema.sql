@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS produtos (
     descricao TEXT,
     preco DECIMAL(10,2) NOT NULL,
     quantidade_estoque INT NOT NULL DEFAULT 0,
-    status VARCHAR(20) NOT NULL DEFAULT 'ativo' CHECK (st|atus IN ('ativo', 'inativo', 'sem estoque')),
+    status VARCHAR(20) NOT NULL DEFAULT 'ativo' CHECK (status IN ('ativo', 'inativo', 'sem estoque')),
     id_categoria INT NOT NULL,
     data_cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_categoria) REFERENCES categorias(id_categoria)
