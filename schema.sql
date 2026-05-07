@@ -155,20 +155,6 @@ CREATE TABLE IF NOT EXISTS pagamentos (
     FOREIGN KEY (pedido_id) REFERENCES pedidos(id_pedido)
 );
 
--- Tabela status_pedido
-CREATE TABLE IF NOT EXISTS status_pedido (
-    id_status_pedido INT PRIMARY KEY,
-    id_expedicao INT,
-    id_pedido INT NOT NULL,
-    situacao VARCHAR(50) NOT NULL,
-    descricao VARCHAR(255),
-    ordem_fluxo INT NOT NULL,
-    ativo BOOLEAN DEFAULT TRUE,
-
-    FOREIGN KEY (id_expedicao) REFERENCES entrega_expedicao(id_entrega),
-    FOREIGN KEY (id_pedido) REFERENCES pedidos(id_pedido)
-);
-
 -- ============================================================
 -- Tabela historico_status (entidade obrigatória pelo PDF)
 -- ============================================================
