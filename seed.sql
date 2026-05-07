@@ -465,3 +465,74 @@ INSERT INTO historico_status (pedido_id, status_anterior, status_novo, alterado_
 SELECT id_pedido, 'entregue', 'devolvido',
        data_criacao + INTERVAL '7 days', 'sistema'
 FROM pedidos WHERE status = 'devolvido';
+
+-- ============================================================
+-- PEDIDOS EXTRAS — necessários pra Q6 retornar resultado
+-- ------------------------------------------------------------
+-- Q6 pede "clientes com MAIS de 3 pedidos no último mês". O seed
+-- distribuía no máximo 3 pedidos por cliente, então a query vinha vazia.
+-- Adicionamos 5 pedidos extras: 2 pro cliente 1 (João Silva, PF) e
+-- 3 pro cliente 16 (PapelMundo, PJ) — ambos passam de 3 pedidos no mês.
+-- ============================================================
+
+INSERT INTO pedidos (id_pedido, id_cliente, id_endereco, data_criacao, subtotal, desconto_aplicado, valor_total, status, codigo_cupom) VALUES
+(81, 1,  1,  '2026-05-04 09:00:00', 50.00, 0.00, 50.00,  'pago',         NULL),
+(82, 1,  1,  '2026-04-15 10:00:00', 30.00, 0.00, 30.00,  'entregue',     NULL),
+(83, 16, 16, '2026-04-20 11:00:00', 100.00, 0.00, 100.00, 'entregue',     NULL),
+(84, 16, 16, '2026-05-04 14:00:00', 80.00, 0.00, 80.00,  'em separacao', NULL),
+(85, 16, 16, '2026-05-05 09:00:00', 65.00, 0.00, 65.00,  'pago',         NULL);
+
+INSERT INTO itens_pedido (id_item, pedido_id, produto_id, quantidade, preco_unitario) VALUES
+(96, 81, 9,  2, 25.00),  -- 2x Resma A4 = 50.00
+(97, 82, 19, 1, 30.00),  -- 1x Caixa Organizadora = 30.00
+(98, 83, 9,  4, 25.00),  -- 4x Resma A4 = 100.00
+(99, 84, 27, 1, 80.00),  -- 1x Fone Headset = 80.00
+(100, 85, 26, 1, 65.00); -- 1x Adaptador USB-C = 65.00
+
+-- Pagamentos aprovados pros 5 pedidos novos (todos avançaram além de aguardando)
+INSERT INTO pagamentos (id_pagamento, pedido_id, descricao, metodo, valor, data_pagamento, status) VALUES
+(200, 81, 'Pagamento aprovado do pedido #81', 'pix',    50.00,  '2026-05-04 13:00:00', 'aprovado'),
+(201, 82, 'Pagamento aprovado do pedido #82', 'cartao', 30.00,  '2026-04-15 14:00:00', 'aprovado'),
+(202, 83, 'Pagamento aprovado do pedido #83', 'boleto', 100.00, '2026-04-20 15:00:00', 'aprovado'),
+(203, 84, 'Pagamento aprovado do pedido #84', 'pix',    80.00,  '2026-05-04 18:00:00', 'aprovado'),
+(204, 85, 'Pagamento aprovado do pedido #85', 'cartao', 65.00,  '2026-05-05 13:00:00', 'aprovado');
+
+-- Histórico fiel pra cada um dos 5 pedidos novos
+-- Pedido 81 (status: pago)
+INSERT INTO historico_status (pedido_id, status_anterior, status_novo, alterado_em, usuario_responsavel) VALUES
+(81, NULL, 'aguardando pagamento', '2026-05-04 09:00:00', 'sistema'),
+(81, 'aguardando pagamento', 'pago', '2026-05-04 13:00:00', 'sistema');
+
+-- Pedido 82 (status: entregue)
+INSERT INTO historico_status (pedido_id, status_anterior, status_novo, alterado_em, usuario_responsavel) VALUES
+(82, NULL, 'aguardando pagamento', '2026-04-15 10:00:00', 'sistema'),
+(82, 'aguardando pagamento', 'pago', '2026-04-15 14:00:00', 'sistema'),
+(82, 'pago', 'em separacao', '2026-04-16 10:00:00', 'sistema'),
+(82, 'em separacao', 'enviado', '2026-04-16 22:00:00', 'sistema'),
+(82, 'enviado', 'entregue', '2026-04-18 10:00:00', 'sistema');
+
+-- Pedido 83 (status: entregue)
+INSERT INTO historico_status (pedido_id, status_anterior, status_novo, alterado_em, usuario_responsavel) VALUES
+(83, NULL, 'aguardando pagamento', '2026-04-20 11:00:00', 'sistema'),
+(83, 'aguardando pagamento', 'pago', '2026-04-20 15:00:00', 'sistema'),
+(83, 'pago', 'em separacao', '2026-04-21 11:00:00', 'sistema'),
+(83, 'em separacao', 'enviado', '2026-04-21 23:00:00', 'sistema'),
+(83, 'enviado', 'entregue', '2026-04-23 11:00:00', 'sistema');
+
+-- Pedido 84 (status: em separacao)
+INSERT INTO historico_status (pedido_id, status_anterior, status_novo, alterado_em, usuario_responsavel) VALUES
+(84, NULL, 'aguardando pagamento', '2026-05-04 14:00:00', 'sistema'),
+(84, 'aguardando pagamento', 'pago', '2026-05-04 18:00:00', 'sistema'),
+(84, 'pago', 'em separacao', '2026-05-05 14:00:00', 'sistema');
+
+-- Pedido 85 (status: pago)
+INSERT INTO historico_status (pedido_id, status_anterior, status_novo, alterado_em, usuario_responsavel) VALUES
+(85, NULL, 'aguardando pagamento', '2026-05-05 09:00:00', 'sistema'),
+(85, 'aguardando pagamento', 'pago', '2026-05-05 13:00:00', 'sistema');
+
+-- Decremento de estoque pra refletir a venda dos pedidos pagos
+UPDATE produtos SET quantidade_estoque = quantidade_estoque - 2 WHERE id_produto = 9;   -- pedido 81
+UPDATE produtos SET quantidade_estoque = quantidade_estoque - 1 WHERE id_produto = 19;  -- pedido 82
+UPDATE produtos SET quantidade_estoque = quantidade_estoque - 4 WHERE id_produto = 9;   -- pedido 83
+UPDATE produtos SET quantidade_estoque = quantidade_estoque - 1 WHERE id_produto = 27;  -- pedido 84
+UPDATE produtos SET quantidade_estoque = quantidade_estoque - 1 WHERE id_produto = 26;  -- pedido 85
